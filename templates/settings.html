@@ -1,0 +1,104 @@
+{% extends "base.html" %}
+
+{% block title %}Configurações - Z-API WhatsApp{% endblock %}
+
+{% block content %}
+<div class="row">
+  <div class="col-md-12">
+    <h1>Configurações</h1>
+    <p class="text-muted">Defina aqui as credenciais da Z-API usadas para enviar mensagens.</p>
+  </div>
+</div>
+
+<div class="row mt-3">
+  <div class="col-md-10 col-lg-8">
+    <div class="card">
+      <div class="card-body">
+        <form id="settingsForm">
+<div class="mb-3" data-sensitive="true">
+            <label class="form-label" for="ZAPI_SEND_TEXT_URL">ZAPI_SEND_TEXT_URL</label>
+            <div class="input-group">
+              <input type="password" id="ZAPI_SEND_TEXT_URL" class="form-control" placeholder="Cole aqui a URL completa de envio da sua instância da Z-API" required autocomplete="off">
+              <button class="btn btn-outline-secondary toggle-visibility" type="button" aria-label="Mostrar" aria-pressed="false" data-target="ZAPI_SEND_TEXT_URL">👁️</button>
+            </div>
+            <div class="form-text">Exemplo: https://api.z-api.io/instances/SEU_ID/token/SEU_TOKEN/send-text</div>
+          </div>
+          <div class="mb-3" data-sensitive="true">
+            <label class="form-label" for="ZAPI_CLIENT_TOKEN">ZAPI_CLIENT_TOKEN (opcional)</label>
+            <div class="input-group">
+              <input type="password" id="ZAPI_CLIENT_TOKEN" class="form-control" placeholder="Client-Token (se exigido pela instância)" autocomplete="new-password">
+              <button class="btn btn-outline-secondary toggle-visibility" type="button" aria-label="Mostrar" aria-pressed="false" data-target="ZAPI_CLIENT_TOKEN">👁️</button>
+            </div>
+          </div>
+          <div class="d-flex gap-2">
+            <button class="btn btn-primary" type="submit">Salvar</button>
+            <button class="btn btn-outline-secondary" type="button" id="btnTestConfig">Testar Configuração</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="row mt-4">
+  <div class="col-md-10 col-lg-8">
+    <div class="alert alert-info">
+      Dica: Se a sua instância exigir Client-Token, preencha o campo ZAPI_CLIENT_TOKEN. Caso contrário, deixe em branco.
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  document.addEventListener('DOMContentLoaded', async function () {
+    // Wire eye toggle for sensitive fields
+    function wireSecretToggles(root){
+      (root || document).querySelectorAll('.toggle-visibility').forEach(btn => {
+        const targetId = btn.getAttribute('data-target');
+        const input = document.getElementById(targetId);
+        if (!input) return;
+        const hide = () => { input.type = 'password'; btn.setAttribute('aria-pressed','false'); btn.setAttribute('aria-label','Mostrar'); };
+        const show = () => { input.type = 'text'; btn.setAttribute('aria-pressed','true'); btn.setAttribute('aria-label','Ocultar'); };
+        btn.addEventListener('click', () => {
+          if (input.type === 'password') { show(); } else { hide(); }
+        });
+      });
+    }
+    wireSecretToggles(document);
+
+    // Load existing settings
+    try {
+      const resp = await apiCall('/settings');
+      const s = resp.settings || {};
+      for (const key of ['ZAPI_SEND_TEXT_URL','ZAPI_CLIENT_TOKEN']) {
+        const el = document.getElementById(key);
+        if (el) el.value = s[key] || '';
+      }
+    } catch (e) { /* already alerted */ }
+
+    // Save form
+    document.getElementById('settingsForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const payload = {};
+      for (const key of ['ZAPI_SEND_TEXT_URL','ZAPI_CLIENT_TOKEN']) {
+        payload[key] = document.getElementById(key).value.trim();
+      }
+      // basic validation for URL
+      if (!payload['ZAPI_SEND_TEXT_URL']) { showAlert('warning', 'Informe a ZAPI_SEND_TEXT_URL'); return; }
+      try {
+        await apiCall('/settings', { method: 'POST', body: JSON.stringify(payload) });
+        showAlert('success', 'Configurações salvas com sucesso!');
+      } catch (err) { /* alert already shown */ }
+    });
+
+    // Test configuration
+    document.getElementById('btnTestConfig').addEventListener('click', async () => {
+      const url = document.getElementById('ZAPI_SEND_TEXT_URL').value.trim();
+      if (!url) { showAlert('warning', 'Defina a ZAPI_SEND_TEXT_URL antes de testar'); return; }
+      if (!/https:\/\/api\.z-api\.io\/instances\/.+\/token\/.+\/send-text$/.test(url)) { showAlert('warning', 'A URL não parece ser uma URL de envio válida da Z-API'); return; }
+      showAlert('success', 'Configuração básica parece válida. Faça um envio real para confirmar.');
+    });
+  });
+</script>
+{% endblock %}
