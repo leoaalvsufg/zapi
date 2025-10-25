@@ -1,0 +1,34 @@
+{% extends "base_public.html" %}
+
+{% block title %}Cadastro de Contato - {{ group.name }}{% endblock %}
+
+{% block content %}
+<div class="row">
+  <div class="col-md-8 col-lg-6">
+    <h1>Cadastro de Contato</h1>
+    <p class="text-muted">Grupo: <strong>{{ group.name }}</strong></p>
+
+    {% if success %}
+      <div class="alert alert-success">Cadastro recebido com sucesso! Obrigado.</div>
+      <a href="{{ url_for('main.public_contact_form', token=token) }}" class="btn btn-outline-primary">Cadastrar outro</a>
+    {% else %}
+      {% if error %}
+        <div class="alert alert-danger">{{ error }}</div>
+      {% endif %}
+
+      <form method="post">
+        <div class="mb-3">
+          <label class="form-label" for="name">Nome completo</label>
+          <input type="text" class="form-control" id="name" name="name" required value="{{ name or '' }}">
+        </div>
+        <div class="mb-3">
+          <label class="form-label" for="whatsapp_number">WhatsApp</label>
+          <input type="text" class="form-control" id="whatsapp_number" name="whatsapp_number" placeholder="+55 11 99999-9999" required value="{{ whatsapp_number or '' }}">
+          <div class="form-text">Informe seu número com DDD. Aceitamos formatos com ou sem "+".</div>
+        </div>
+        <button type="submit" class="btn btn-primary">Enviar</button>
+      </form>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

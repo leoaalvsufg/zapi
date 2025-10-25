@@ -1,0 +1,95 @@
+{% extends "base.html" %}
+
+{% block title %}Grupos - Z-API WhatsApp{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-12">
+        <h1>Gerenciar Grupos</h1>
+        <button class="btn btn-primary mt-3" data-bs-toggle="modal" data-bs-target="#addGroupModal">
+            + Criar Grupo
+        </button>
+    </div>
+</div>
+
+<div class="row mt-4">
+    <div class="col-md-12">
+        <div class="table-responsive">
+            <table class="table table-striped">
+                <thead>
+                    <tr>
+                        <th>Nome</th>
+                        <th>Descrição</th>
+                        <th>Contatos</th>
+                        <th>Ações</th>
+                    </tr>
+                </thead>
+                <tbody id="groupsTableBody">
+                    <!-- Groups will be loaded via JavaScript -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Add Group Modal -->
+<div class="modal fade" id="addGroupModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Criar Grupo</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="addGroupForm">
+                    <div class="mb-3">
+                        <label for="groupName" class="form-label">Nome do Grupo</label>
+                        <input type="text" class="form-control" id="groupName" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="groupDescription" class="form-label">Descrição</label>
+                        <textarea class="form-control" id="groupDescription" rows="3"></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-primary" onclick="saveGroup()">Criar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Invite Link Modal -->
+<div class="modal fade" id="inviteLinkModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Link de Cadastro do Grupo</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div class="mb-2">
+          <label class="form-label">Envie este link no seu grupo (WhatsApp, Telegram, etc.)</label>
+          <input type="text" class="form-control" id="inviteLinkInput" readonly>
+          <div class="form-text">Qualquer pessoa com o link poderá cadastrar nome e WhatsApp diretamente neste grupo.</div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline-secondary" onclick="copyInviteLink()">Copiar</button>
+        <button type="button" class="btn btn-primary" data-bs-dismiss="modal">Fechar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Load groups on page load
+    document.addEventListener('DOMContentLoaded', function() {
+        loadGroupsList();
+    });
+</script>
+{% endblock %}

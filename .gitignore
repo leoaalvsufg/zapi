@@ -1,0 +1,30 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+
+# Envs
+.venv/
+venv/
+.env
+
+# Logs
+logs/
+*.log
+
+# Databases
+*.db
+*.sqlite3
+instance/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Node (if any)
+node_modules/
+
+# IDEs
+.vscode/
+.idea/

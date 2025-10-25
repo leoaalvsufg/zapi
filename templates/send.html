@@ -1,0 +1,179 @@
+{% extends "base.html" %}
+
+{% block title %}Enviar Mensagens - Z-API WhatsApp{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-12">
+        <h1>Enviar Mensagens</h1>
+    </div>
+</div>
+
+<div class="row mt-4">
+    <div class="col-md-12">
+        <ul class="nav nav-tabs" id="sendTab" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active" id="individual-tab" data-bs-toggle="tab" data-bs-target="#individual">
+                    Envio Individual
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="bulk-tab" data-bs-toggle="tab" data-bs-target="#bulk">
+                    Envio em Massa
+                </button>
+            </li>
+        </ul>
+        
+        <div class="tab-content" id="sendTabContent">
+            <!-- Individual Send Tab -->
+            <div class="tab-pane fade show active" id="individual" role="tabpanel">
+                <div class="card mt-3">
+                    <div class="card-body">
+<form id="individualSendForm">
+                            <div class="mb-3">
+                                <label class="form-label">Destinatário</label>
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <select class="form-control" id="contactSelect">
+                                            <option value="">Selecione um contato...</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <input type="text" class="form-control" id="phoneNumber" 
+                                               placeholder="Ou digite o número (+55 11 99999-9999)">
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="mb-3">
+                                <label for="message" class="form-label">Mensagem</label>
+                                <textarea class="form-control" id="individualMessage" rows="5" required></textarea>
+                                <div class="form-text">Máximo 4096 caracteres. <span id="charCount">0</span>/4096</div>
+                            </div>
+                            <div class="form-check form-switch mb-3">
+                                <input class="form-check-input" type="checkbox" id="individualScheduleToggle">
+                                <label class="form-check-label" for="individualScheduleToggle">Programar envio</label>
+                            </div>
+                            <div id="individualScheduleOptions" class="border rounded p-3 mb-3" style="display:none;">
+                                <div class="mb-2">
+                                    <label class="form-label">Tipo de agendamento</label>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="radio" name="individualScheduleType" id="individualScheduleOnce" value="once" checked>
+                                        <label class="form-check-label" for="individualScheduleOnce">Uma vez (data e hora)</label>
+                                    </div>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="radio" name="individualScheduleType" id="individualScheduleCron" value="cron">
+                                        <label class="form-check-label" for="individualScheduleCron">Recorrente (cron)</label>
+                                    </div>
+                                </div>
+                                <div id="individualOnceFields" class="mb-2">
+                                    <label for="individualRunAt" class="form-label">Quando enviar?</label>
+                                    <input type="datetime-local" class="form-control" id="individualRunAt">
+                                </div>
+                                <div id="individualCronFields" class="mb-2" style="display:none;">
+                                    <label for="individualCron" class="form-label">Expressão CRON (min hora dia mês diaSemana)
+                                        <a href="https://crontab.guru/" target="_blank" rel="noopener noreferrer" class="ms-2">Gerar expressão</a>
+                                        • <a href="https://crontab.cronhub.io/" target="_blank" rel="noopener noreferrer">Cron online</a>
+                                    </label
+                                    <input type="text" class="form-control" id="individualCron" placeholder="ex: 0 9 * * MON-FRI">
+                                    <div class="form-text">Formato: min hora dia mês diaSemana (ex: 0 9 * * * = todos os dias às 09:00)</div>
+                                </div>
+                            </div>
+                            <button type="submit" class="btn btn-primary">Enviar / Agendar</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Bulk Send Tab -->
+            <div class="tab-pane fade" id="bulk" role="tabpanel">
+                <div class="card mt-3">
+                    <div class="card-body">
+<form id="bulkSendForm">
+                            <div class="mb-3">
+                                <label for="groupSelect" class="form-label">Grupo</label>
+                                <select class="form-control" id="groupSelect" required>
+                                    <option value="">Selecione um grupo...</option>
+                                </select>
+                            </div>
+                            <div class="mb-3">
+                                <label for="bulkMessage" class="form-label">Mensagem</label>
+                                <textarea class="form-control" id="bulkMessage" rows="5" required></textarea>
+                                <div class="form-text">Máximo 4096 caracteres. <span id="bulkCharCount">0</span>/4096</div>
+                            </div>
+                            <div class="form-check form-switch mb-3">
+                                <input class="form-check-input" type="checkbox" id="bulkScheduleToggle">
+                                <label class="form-check-label" for="bulkScheduleToggle">Programar envio</label>
+                            </div>
+                            <div id="bulkScheduleOptions" class="border rounded p-3 mb-3" style="display:none;">
+                                <div class="mb-2">
+                                    <label class="form-label">Tipo de agendamento</label>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="radio" name="bulkScheduleType" id="bulkScheduleOnce" value="once" checked>
+                                        <label class="form-check-label" for="bulkScheduleOnce">Uma vez (data e hora)</label>
+                                    </div>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="radio" name="bulkScheduleType" id="bulkScheduleCron" value="cron">
+                                        <label class="form-check-label" for="bulkScheduleCron">Recorrente (cron)</label>
+                                    </div>
+                                </div>
+                                <div id="bulkOnceFields" class="mb-2">
+                                    <label for="bulkRunAt" class="form-label">Quando enviar?</label>
+                                    <input type="datetime-local" class="form-control" id="bulkRunAt">
+                                </div>
+                                <div id="bulkCronFields" class="mb-2" style="display:none;">
+                                    <label for="bulkCron" class="form-label">Expressão CRON (min hora dia mês diaSemana)
+                                        <a href="https://crontab.guru/" target="_blank" rel="noopener noreferrer" class="ms-2">Gerar expressão</a>
+                                        • <a href="https://crontab.cronhub.io/" target="_blank" rel="noopener noreferrer">Cron online</a>
+                                    </label
+                                    <input type="text" class="form-control" id="bulkCron" placeholder="ex: 0 9 * * MON-FRI">
+                                    <div class="form-text">Formato: min hora dia mês diaSemana (ex: 0 9 * * * = todos os dias às 09:00)</div>
+                                </div>
+                            </div>
+                            <div class="alert alert-warning">
+                                ⚠️ Atenção: O envio em massa possui limite de taxa. As mensagens serão enviadas com intervalo de 3 segundos entre cada uma.
+                            </div>
+                            <button type="submit" class="btn btn-warning">Enviar / Agendar em Massa</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Job Status Modal -->
+<div class="modal fade" id="jobStatusModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Status do Envio em Massa</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div id="jobStatusContent">
+                    <!-- Job status will be displayed here -->
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Load contacts and groups on page load
+    document.addEventListener('DOMContentLoaded', function() {
+        loadContactsForSelect();
+        loadGroupsForSelect();
+        
+        // Character counter
+        document.getElementById('individualMessage').addEventListener('input', function() {
+            document.getElementById('charCount').textContent = this.value.length;
+        });
+        
+        document.getElementById('bulkMessage').addEventListener('input', function() {
+            document.getElementById('bulkCharCount').textContent = this.value.length;
+        });
+    });
+</script>
+{% endblock %}
