@@ -1,0 +1,29 @@
+version: "3.9"
+
+services:
+  zapi:
+    container_name: zapi
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "5055:5055"
+    env_file:
+      - .env
+    environment:
+      - FLASK_APP=app.py
+      - FLASK_ENV=production
+      - FLASK_RUN_HOST=0.0.0.0
+      - FLASK_RUN_PORT=5055
+    volumes:
+      # Persist instance data (database, etc.)
+      - ./instance:/app/instance
+      # Persist logs
+      - ./logs:/app/logs
+    restart: unless-stopped
+    networks:
+      - zapi-network
+
+networks:
+  zapi-network:
+    driver: bridge

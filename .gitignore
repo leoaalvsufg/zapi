@@ -10,13 +10,15 @@ venv/
 .env
 
 # Logs
-logs/
+logs/*
+!logs/.gitkeep
 *.log
 
 # Databases
 *.db
 *.sqlite3
-instance/
+instance/*
+!instance/.gitkeep
 
 # OS files
 .DS_Store
