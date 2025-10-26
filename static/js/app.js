@@ -454,6 +454,61 @@ async function pollJobStatus(jobId) {
     const polling = setInterval(updateStatus, 2000);
 }
 
+// Load schedules
+async function loadSchedules() {
+  try {
+    const data = await apiCall('/schedules');
+    const tbody = document.getElementById('schedulesTableBody');
+    if (!tbody) return;
+    tbody.innerHTML = (data.schedules || []).map(s => {
+      const when = s.schedule_type === 'once' ? (s.run_at || '-') : (s.cron_expression || '-');
+      const actions = s.status === 'paused' ?
+        `<button class="btn btn-sm btn-success me-1" onclick="scheduleResume(${s.id})">Reativar</button>` :
+        `<button class="btn btn-sm btn-warning me-1" onclick="schedulePause(${s.id})">Pausar</button>`;
+      return `
+        <tr>
+          <td>${s.id}</td>
+          <td>${s.type}</td>
+          <td>${s.schedule_type}</td>
+          <td>${s.status}</td>
+          <td>${when}</td>
+          <td>
+            ${actions}
+            <button class="btn btn-sm btn-danger" onclick="scheduleCancel(${s.id})">Cancelar</button>
+          </td>
+        </tr>
+      `;
+    }).join('');
+  } catch (err) {
+    console.error('Error loading schedules', err);
+  }
+}
+
+async function schedulePause(id) {
+  try {
+    await apiCall(`/schedules/${id}/pause`, { method: 'POST' });
+    showAlert('info', 'Agendamento pausado');
+    loadSchedules();
+  } catch (e) {}
+}
+
+async function scheduleResume(id) {
+  try {
+    await apiCall(`/schedules/${id}/resume`, { method: 'POST' });
+    showAlert('success', 'Agendamento reativado');
+    loadSchedules();
+  } catch (e) {}
+}
+
+async function scheduleCancel(id) {
+  if (!confirm('Cancelar este agendamento?')) return;
+  try {
+    await apiCall(`/schedules/${id}`, { method: 'DELETE' });
+    showAlert('success', 'Agendamento cancelado');
+    loadSchedules();
+  } catch (e) {}
+}
+
 // Load message history
 async function loadHistory() {
     try {

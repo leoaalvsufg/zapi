@@ -225,6 +225,74 @@ def list_schedules() -> List[Dict[str, Any]]:
     return [i.to_dict() for i in items]
 
 
+def update_schedule(
+    schedule_id: int,
+    *,
+    message: Optional[str] = None,
+    schedule_type: Optional[str] = None,
+    run_at: Optional[datetime] = None,
+    cron_expression: Optional[str] = None,
+) -> Optional[Dict[str, Any]]:
+    """Update an existing schedule and refresh the APScheduler job."""
+    sched: Optional[ScheduledMessage] = ScheduledMessage.query.get(schedule_id)
+    if not sched:
+        return None
+
+    # Convert run_at from string if necessary
+    if isinstance(run_at, str) and run_at:
+        try:
+            run_at = datetime.fromisoformat(run_at)
+        except Exception:
+            raise ValueError('Invalid run_at format. Use ISO datetime (YYYY-MM-DDTHH:MM)')
+
+    # Apply updates
+    if message is not None:
+        sched.message = message
+
+    if schedule_type is not None and schedule_type in ('once', 'cron'):
+        sched.schedule_type = schedule_type
+        # Clear fields not relevant
+        if schedule_type == 'once':
+            sched.cron_expression = None
+        else:
+            sched.run_at = None
+
+    if sched.schedule_type == 'once':
+        if run_at is not None:
+            sched.run_at = run_at
+        if not sched.run_at or sched.run_at <= datetime.utcnow():
+            raise ValueError('run_at must be a future datetime for one-time schedules')
+    else:
+        if cron_expression is not None:
+            # Validate cron expression
+            _ = _parse_cron_expression(cron_expression)
+            sched.cron_expression = cron_expression
+        if not sched.cron_expression:
+            raise ValueError('cron_expression is required for cron schedules')
+
+    db.session.commit()
+
+    # Refresh scheduler job
+    try:
+        if scheduler and sched.job_id:
+            try:
+                scheduler.remove_job(sched.job_id)
+            except Exception:
+                pass
+        if sched.status == 'scheduled':
+            if sched.schedule_type == 'once':
+                _add_date_job(sched)
+            else:
+                _add_cron_job(sched)
+        elif sched.status == 'paused':
+            # Keep it out of active scheduler
+            pass
+    except Exception:
+        logger.exception(f"Error refreshing scheduler job for schedule {schedule_id}")
+
+    return sched.to_dict()
+
+
 def cancel_schedule(schedule_id: int) -> bool:
     sched: Optional[ScheduledMessage] = ScheduledMessage.query.get(schedule_id)
     if not sched:
@@ -239,3 +307,64 @@ def cancel_schedule(schedule_id: int) -> bool:
     sched.status = 'canceled'
     db.session.commit()
     return True
+
+
+def pause_schedule(schedule_id: int) -> bool:
+    """Pause a scheduled job without deleting it (primarily for cron jobs)."""
+    sched: Optional[ScheduledMessage] = ScheduledMessage.query.get(schedule_id)
+    if not sched:
+        return False
+    try:
+        if scheduler and sched.job_id:
+            try:
+                scheduler.pause_job(sched.job_id)
+            except Exception:
+                # If job not found, we'll just mark as paused in DB
+                pass
+        sched.status = 'paused'
+        db.session.commit()
+        return True
+    except Exception:
+        logger.exception(f"Error pausing schedule {schedule_id}")
+        db.session.rollback()
+        return False
+
+
+essential_cron_statuses = {'scheduled', 'paused'}
+
+def resume_schedule(schedule_id: int) -> bool:
+    """Resume a paused scheduled job. Re-add it to scheduler if missing."""
+    sched: Optional[ScheduledMessage] = ScheduledMessage.query.get(schedule_id)
+    if not sched:
+        return False
+    try:
+        if scheduler and sched.job_id:
+            try:
+                # Try resume if it exists
+                scheduler.resume_job(sched.job_id)
+            except Exception:
+                # If not present, re-add depending on type
+                if sched.schedule_type == 'cron' and sched.cron_expression:
+                    _add_cron_job(sched)
+                elif sched.schedule_type == 'once' and sched.run_at and sched.run_at > datetime.utcnow():
+                    _add_date_job(sched)
+                else:
+                    # Cannot resume an expired one-time schedule
+                    logger.warning(f"Cannot resume schedule {schedule_id}: invalid timing or missing trigger")
+                    return False
+        else:
+            # No scheduler or job id; try to re-add
+            if sched.schedule_type == 'cron' and sched.cron_expression:
+                _add_cron_job(sched)
+            elif sched.schedule_type == 'once' and sched.run_at and sched.run_at > datetime.utcnow():
+                _add_date_job(sched)
+            else:
+                logger.warning(f"Cannot resume schedule {schedule_id}: invalid timing or missing trigger")
+                return False
+        sched.status = 'scheduled'
+        db.session.commit()
+        return True
+    except Exception:
+        logger.exception(f"Error resuming schedule {schedule_id}")
+        db.session.rollback()
+        return False

@@ -1,0 +1,167 @@
+{% extends "base.html" %}
+
+{% block title %}Cron - Agendamentos{% endblock %}
+
+{% block content %}
+<div class="row">
+  <div class="col-md-12">
+    <h1>Agendamentos (Cron e Únicos)</h1>
+  </div>
+</div>
+
+<div class="row mt-3">
+  <div class="col-md-12">
+    <div class="table-responsive">
+      <table class="table table-striped">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Tipo</th>
+            <th>Destino</th>
+            <th>Mensagem</th>
+            <th>Agendamento</th>
+            <th>Status</th>
+            <th>Ações</th>
+          </tr>
+        </thead>
+        <tbody id="cronTableBody">
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- Edit Modal -->
+<div class="modal fade" id="editScheduleModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Editar Agendamento</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <form id="editScheduleForm">
+          <input type="hidden" id="editScheduleId">
+          <div class="mb-3">
+            <label class="form-label" for="editMessage">Mensagem</label>
+            <textarea class="form-control" id="editMessage" rows="4" required></textarea>
+          </div>
+          <div class="mb-2">
+            <label class="form-label">Tipo de agendamento</label>
+            <div class="form-check">
+              <input class="form-check-input" type="radio" name="editScheduleType" id="editOnce" value="once">
+              <label class="form-check-label" for="editOnce">Uma vez (data e hora)</label>
+            </div>
+            <div class="form-check">
+              <input class="form-check-input" type="radio" name="editScheduleType" id="editCron" value="cron">
+              <label class="form-check-label" for="editCron">Recorrente (cron)</label>
+            </div>
+          </div>
+          <div id="editOnceFields" class="mb-2" style="display:none;">
+            <label for="editRunAt" class="form-label">Quando enviar?</label>
+            <input type="datetime-local" class="form-control" id="editRunAt">
+          </div>
+          <div id="editCronFields" class="mb-2" style="display:none;">
+            <label for="editCronExpr" class="form-label">
+              Expressão CRON (min hora dia mês diaSemana)
+              <a href="https://crontab.guru/" target="_blank" rel="noopener noreferrer" class="ms-2">Gerar expressão</a>
+              • <a href="https://crontab.cronhub.io/" target="_blank" rel="noopener noreferrer">Cron online</a>
+            </label>
+            <input type="text" class="form-control" id="editCronExpr" placeholder="ex: 0 9 * * MON-FRI">
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
+        <button type="button" class="btn btn-primary" id="btnSaveEdit">Salvar</button>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  function scheduleTargetText(s) {
+    if (!s.target) return '-';
+    if (s.target.type === 'contact') return `${s.target.name} (${s.target.number})`;
+    if (s.target.type === 'phone') return s.target.number || '-';
+    if (s.target.type === 'group') return `Grupo: ${s.target.name || s.group_id}`;
+    return '-';
+  }
+
+  async function loadCronTable() {
+    try {
+      const data = await apiCall('/schedules');
+      const tbody = document.getElementById('cronTableBody');
+      if (!tbody) return;
+      tbody.innerHTML = (data.schedules || []).map(s => {
+        const when = s.schedule_type === 'once' ? (s.run_at || '-') : (s.cron_expression || '-');
+        const actions = s.status === 'paused'
+          ? `<button class="btn btn-sm btn-success me-1" onclick="scheduleResume(${s.id}).then(loadCronTable)">Reativar</button>`
+          : `<button class="btn btn-sm btn-warning me-1" onclick="schedulePause(${s.id}).then(loadCronTable)">Pausar</button>`;
+        return `
+          <tr>
+            <td>${s.id}</td>
+            <td>${s.type}</td>
+            <td>${scheduleTargetText(s)}</td>
+            <td title="${s.message}">${s.message.substring(0, 60)}${s.message.length>60?'...':''}</td>
+            <td>${s.schedule_type} <small class="text-muted">${when}</small></td>
+            <td>${s.status}</td>
+            <td>
+              ${actions}
+              <button class="btn btn-sm btn-primary me-1" onclick="openEdit(${s.id})">Editar</button>
+              <button class="btn btn-sm btn-danger" onclick="scheduleCancel(${s.id}).then(loadCronTable)">Cancelar</button>
+            </td>
+          </tr>
+        `;
+      }).join('');
+    } catch (e) { /* alerted by apiCall */ }
+  }
+
+  function toggleEditFields() {
+    const isOnce = document.getElementById('editOnce').checked;
+    document.getElementById('editOnceFields').style.display = isOnce ? 'block' : 'none';
+    document.getElementById('editCronFields').style.display = isOnce ? 'none' : 'block';
+  }
+
+  async function openEdit(id) {
+    try {
+      const data = await apiCall('/schedules');
+      const s = (data.schedules || []).find(x => x.id === id);
+      if (!s) return;
+      document.getElementById('editScheduleId').value = s.id;
+      document.getElementById('editMessage').value = s.message || '';
+      if (s.schedule_type === 'once') {
+        document.getElementById('editOnce').checked = true;
+        document.getElementById('editRunAt').value = s.run_at ? s.run_at.substring(0,16) : '';
+      } else {
+        document.getElementById('editCron').checked = true;
+        document.getElementById('editCronExpr').value = s.cron_expression || '';
+      }
+      toggleEditFields();
+      new bootstrap.Modal(document.getElementById('editScheduleModal')).show();
+    } catch (e) {}
+  }
+
+  document.getElementById('editOnce').addEventListener('change', toggleEditFields);
+  document.getElementById('editCron').addEventListener('change', toggleEditFields);
+  document.getElementById('btnSaveEdit').addEventListener('click', async () => {
+    const id = document.getElementById('editScheduleId').value;
+    const message = document.getElementById('editMessage').value;
+    const schedule_type = document.getElementById('editOnce').checked ? 'once' : 'cron';
+    const run_at = schedule_type === 'once' ? document.getElementById('editRunAt').value : null;
+    const cron = schedule_type === 'cron' ? document.getElementById('editCronExpr').value : null;
+    try {
+      await apiCall(`/schedules/${id}`, { method: 'PUT', body: JSON.stringify({ message, schedule_type, run_at, cron }) });
+      showAlert('success', 'Agendamento atualizado');
+      bootstrap.Modal.getInstance(document.getElementById('editScheduleModal')).hide();
+      loadCronTable();
+    } catch (e) {}
+  });
+
+  document.addEventListener('DOMContentLoaded', function(){
+    loadCronTable();
+  });
+</script>
+{% endblock %}

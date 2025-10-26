@@ -138,6 +138,30 @@
                 </div>
             </div>
         </div>
+
+        <!-- Schedules Section -->
+        <div class="row mt-4">
+            <div class="col-md-12">
+                <h3>Agendamentos</h3>
+                <div class="table-responsive">
+                    <table class="table table-striped">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Tipo</th>
+                                <th>Agendamento</th>
+                                <th>Status</th>
+                                <th>Quando/Cron</th>
+                                <th>Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody id="schedulesTableBody">
+                            <!-- schedules loaded via JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
     </div>
 </div>
 
@@ -165,6 +189,7 @@
     document.addEventListener('DOMContentLoaded', function() {
         loadContactsForSelect();
         loadGroupsForSelect();
+        loadSchedules();
         
         // Character counter
         document.getElementById('individualMessage').addEventListener('input', function() {

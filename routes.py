@@ -2,12 +2,12 @@ from flask import Blueprint, render_template, request, jsonify, current_app, url
 from datetime import datetime, timedelta
 from marshmallow import ValidationError
 from loguru import logger
-from models import db, Contact, Group, Message
+from models import db, Contact, Group, Message, ScheduledMessage
 from utils.validators import ContactSchema, MessageSchema, BulkMessageSchema, ScheduleSchema
 from utils.phone import normalize_to_e164
 from services.messaging import get_messaging_service
 from services.ai import get_ai_service
-from services.scheduler import schedule_message_once, schedule_message_cron, list_schedules, cancel_schedule
+from services.scheduler import schedule_message_once, schedule_message_cron, list_schedules, cancel_schedule, pause_schedule, resume_schedule, update_schedule
 from services.settings_service import get_settings as get_app_settings, set_settings as save_app_settings, ZAPI_KEYS
 from config import Config
 from functools import wraps
@@ -74,6 +74,11 @@ def send_page():
 def history_page():
     """Message history page."""
     return render_template('history.html')
+
+@main_bp.route('/cron')
+def cron_page():
+    """Cron schedules management page."""
+    return render_template('cron.html')
 
 @main_bp.route('/settings')
 def settings_page():
@@ -412,10 +417,25 @@ def schedule_message():
 
 @main_bp.route('/api/schedules', methods=['GET'])
 def get_schedules():
-    """List all schedules."""
+    """List all schedules with target details."""
     try:
-        items = list_schedules()
-        return jsonify({'success': True, 'schedules': items})
+        schedules = ScheduledMessage.query.order_by(ScheduledMessage.created_at.desc()).all()
+        out = []
+        for s in schedules:
+            d = s.to_dict()
+            # Enrich with target details
+            if s.type == 'individual':
+                if s.contact_id and s.contact:
+                    d['target'] = {'type': 'contact', 'name': s.contact.name, 'number': s.contact.whatsapp_number}
+                else:
+                    d['target'] = {'type': 'phone', 'name': None, 'number': s.phone_number}
+            elif s.type == 'group':
+                if s.group_id and s.group:
+                    d['target'] = {'type': 'group', 'name': s.group.name, 'number': None}
+                else:
+                    d['target'] = {'type': 'group', 'name': None, 'number': None}
+            out.append(d)
+        return jsonify({'success': True, 'schedules': out})
     except Exception as e:
         logger.exception("Error listing schedules")
         return jsonify({'success': False, 'error': str(e)}), 500
@@ -432,6 +452,49 @@ def delete_schedule(schedule_id):
         logger.exception("Error canceling schedule")
         return jsonify({'success': False, 'error': str(e)}), 500
 
+@main_bp.route('/api/schedules/<int:schedule_id>/pause', methods=['POST'])
+def pause_schedule_api(schedule_id):
+    try:
+        ok = pause_schedule(schedule_id)
+        if ok:
+            return jsonify({'success': True})
+        return jsonify({'success': False, 'error': 'Schedule not found or cannot pause'}), 400
+    except Exception as e:
+        logger.exception("Error pausing schedule")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@main_bp.route('/api/schedules/<int:schedule_id>/resume', methods=['POST'])
+def resume_schedule_api(schedule_id):
+    try:
+        ok = resume_schedule(schedule_id)
+        if ok:
+            return jsonify({'success': True})
+        return jsonify({'success': False, 'error': 'Schedule not found or cannot resume'}), 400
+    except Exception as e:
+        logger.exception("Error resuming schedule")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@main_bp.route('/api/schedules/<int:schedule_id>', methods=['PUT', 'PATCH'])
+def update_schedule_api(schedule_id):
+    try:
+        payload = request.json or {}
+        st = payload.get('schedule_type')
+        if st and st not in ('once', 'cron'):
+            return jsonify({'success': False, 'error': 'schedule_type must be once or cron'}), 400
+        result = update_schedule(
+            schedule_id,
+            message=payload.get('message'),
+            schedule_type=st,
+            run_at=payload.get('run_at'),
+            cron_expression=payload.get('cron') or payload.get('cron_expression')
+        )
+        if result:
+            return jsonify({'success': True, 'schedule': result})
+        return jsonify({'success': False, 'error': 'Schedule not found or not updated'}), 400
+    except Exception as e:
+        logger.exception('Error updating schedule')
+        return jsonify({'success': False, 'error': str(e)}), 500
+
 # Invite link API
 @main_bp.route('/api/groups/<int:group_id>/invite-link', methods=['GET'])
 def get_group_invite_link(group_id):
@@ -442,6 +505,19 @@ def get_group_invite_link(group_id):
         return jsonify({'success': True, 'link': link, 'group': group.to_dict()})
     except Exception as e:
         logger.exception('Error generating invite link')
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+# Z-API Overview for dashboard
+@main_bp.route('/api/zapi/overview', methods=['GET'])
+def zapi_overview():
+    try:
+        from services.zapi_client import get_client
+        client = get_client()
+        data = client.get_overview()
+        return jsonify({'success': True, 'overview': data})
+    except Exception as e:
+        logger.exception('Error fetching Z-API overview')
         return jsonify({'success': False, 'error': str(e)}), 500
 
 
