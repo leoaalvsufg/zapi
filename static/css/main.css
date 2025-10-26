@@ -1,0 +1,120 @@
+/* Custom styles for Z-API WhatsApp Sender */
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+}
+
+.navbar-brand {
+    font-weight: 600;
+}
+
+.card {
+    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+    border: none;
+}
+
+.table {
+    font-size: 0.95rem;
+}
+
+.badge {
+    padding: 0.35em 0.65em;
+}
+
+.modal-content {
+    border-radius: 0.5rem;
+}
+
+.btn {
+    border-radius: 0.25rem;
+    font-weight: 500;
+}
+
+.form-control:focus {
+    border-color: #0d6efd;
+    box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.25);
+}
+
+.alert {
+    border-radius: 0.5rem;
+}
+
+/* Loading spinner */
+.spinner-border-sm {
+    width: 1rem;
+    height: 1rem;
+    border-width: 0.2em;
+}
+
+/* Progress bar for bulk send */
+.progress {
+    height: 25px;
+}
+
+.progress-bar {
+    font-size: 0.875rem;
+    line-height: 25px;
+}
+
+/* Message preview */
+.message-preview {
+    white-space: pre-wrap;
+    word-break: break-word;
+    background-color: #f8f9fa;
+    padding: 10px;
+    border-radius: 5px;
+    margin-top: 10px;
+}
+
+/* Status badges */
+.badge.bg-success {
+    background-color: #198754!important;
+}
+
+.badge.bg-danger {
+    background-color: #dc3545!important;
+}
+
+.badge.bg-warning {
+    background-color: #ffc107!important;
+    color: #000;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .table {
+        font-size: 0.875rem;
+    }
+    
+    .btn {
+        font-size: 0.875rem;
+    }
+}
+
+/* Dark mode support */
+@media (prefers-color-scheme: dark) {
+    body {
+        background-color: #212529;
+        color: #dee2e6;
+    }
+    
+    .card {
+        background-color: #343a40;
+        color: #dee2e6;
+    }
+    
+    .table {
+        color: #dee2e6;
+    }
+    
+    .form-control {
+        background-color: #495057;
+        border-color: #495057;
+        color: #dee2e6;
+    }
+    
+    .modal-content {
+        background-color: #343a40;
+        color: #dee2e6;
+    }
+}

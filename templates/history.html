@@ -1,0 +1,69 @@
+{% extends "base.html" %}
+
+{% block title %}Histórico - Z-API WhatsApp{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-12">
+        <h1>Histórico de Mensagens</h1>
+    </div>
+</div>
+
+<div class="row mt-4">
+    <div class="col-md-3">
+        <label for="statusFilter" class="form-label">Filtrar por Status</label>
+        <select class="form-control" id="statusFilter">
+            <option value="">Todos</option>
+            <option value="sent">Enviado</option>
+            <option value="failed">Falhou</option>
+            <option value="queued">Na Fila</option>
+        </select>
+    </div>
+    <div class="col-md-3">
+        <label for="contactFilter" class="form-label">Filtrar por Contato</label>
+        <select class="form-control" id="contactFilter">
+            <option value="">Todos</option>
+        </select>
+    </div>
+    <div class="col-md-3">
+        <button class="btn btn-primary" style="margin-top: 32px;" onclick="loadHistory()">Filtrar</button>
+    </div>
+</div>
+
+<div class="row mt-4">
+    <div class="col-md-12">
+        <div class="table-responsive">
+            <table class="table table-striped">
+                <thead>
+                    <tr>
+                        <th>Data/Hora</th>
+                        <th>Destinatário</th>
+                        <th>Mensagem</th>
+                        <th>Status</th>
+                        <th>Erro</th>
+                    </tr>
+                </thead>
+                <tbody id="historyTableBody">
+                    <!-- Messages will be loaded via JavaScript -->
+                </tbody>
+            </table>
+        </div>
+        
+        <nav>
+            <ul class="pagination" id="historyPagination">
+                <!-- Pagination will be added via JavaScript -->
+            </ul>
+        </nav>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Load history on page load
+    document.addEventListener('DOMContentLoaded', function() {
+        loadHistory();
+        loadContactsForFilter();
+    });
+</script>
+{% endblock %}

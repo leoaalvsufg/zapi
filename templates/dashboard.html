@@ -1,0 +1,86 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - Z-API WhatsApp{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-12">
+        <h1>Dashboard</h1>
+    </div>
+</div>
+
+<div class="row mt-4">
+    <div class="col-md-4">
+        <div class="card text-white bg-primary mb-3">
+            <div class="card-header">Total de Contatos</div>
+            <div class="card-body">
+                <h2 class="card-title">{{ total_contacts }}</h2>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card text-white bg-success mb-3">
+            <div class="card-header">Total de Grupos</div>
+            <div class="card-body">
+                <h2 class="card-title">{{ total_groups }}</h2>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card text-white bg-info mb-3">
+            <div class="card-header">Mensagens Hoje</div>
+            <div class="card-body">
+                <h2 class="card-title">{{ messages_today }}</h2>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mt-4">
+    <div class="col-md-12">
+        <h3>Mensagens Recentes</h3>
+        <div class="table-responsive">
+            <table class="table table-striped">
+                <thead>
+                    <tr>
+                        <th>Data/Hora</th>
+                        <th>Contato/Número</th>
+                        <th>Mensagem</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for msg in recent_messages %}
+                    <tr>
+                        <td>{{ msg.created_at.strftime('%d/%m %H:%M') if msg.created_at else '-' }}</td>
+                        <td>
+                            {% if msg.contact %}
+                                {{ msg.contact.name }}
+                            {% else %}
+                                {{ msg.phone_number }}
+                            {% endif %}
+                        </td>
+                        <td>{{ msg.content[:50] }}{% if msg.content|length > 50 %}...{% endif %}</td>
+                        <td>
+                            {% if msg.status == 'sent' %}
+                                <span class="badge bg-success">Enviado</span>
+                            {% elif msg.status == 'failed' %}
+                                <span class="badge bg-danger">Falhou</span>
+                            {% elif msg.status == 'queued' %}
+                                <span class="badge bg-warning">Na Fila</span>
+                            {% else %}
+                                <span class="badge bg-secondary">{{ msg.status }}</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="4" class="text-center">Nenhuma mensagem enviada ainda</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

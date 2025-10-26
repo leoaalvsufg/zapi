@@ -297,15 +297,34 @@ def cancel_schedule(schedule_id: int) -> bool:
     sched: Optional[ScheduledMessage] = ScheduledMessage.query.get(schedule_id)
     if not sched:
         return False
-    # Try to remove from scheduler
-    try:
-        if scheduler and sched.job_id:
+    
+    # Try to remove from scheduler - be more aggressive
+    if scheduler and sched.job_id:
+        try:
+            # First try to remove the job
             scheduler.remove_job(sched.job_id)
-    except Exception:
-        logger.warning(f"Could not remove job {sched.job_id} from scheduler during cancel")
-    # Mark as canceled
+            logger.info(f"Job {sched.job_id} removed from scheduler")
+        except Exception as e:
+            logger.warning(f"Could not remove job {sched.job_id} from scheduler: {e}")
+            # Try to get all jobs and remove matching ones
+            try:
+                all_jobs = scheduler.get_jobs()
+                for job in all_jobs:
+                    if job.id == sched.job_id:
+                        scheduler.remove_job(job.id)
+                        logger.info(f"Job {job.id} found and removed from scheduler")
+                        break
+            except Exception as e2:
+                logger.error(f"Failed to remove job even after scanning all jobs: {e2}")
+    
+    # Mark as canceled and remove from database completely
     sched.status = 'canceled'
     db.session.commit()
+    
+    # Optionally delete the record entirely to prevent it from being restored
+    # db.session.delete(sched)
+    # db.session.commit()
+    
     return True
 
 

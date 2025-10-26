@@ -1,0 +1,84 @@
+{% extends "base.html" %}
+
+{% block title %}Contatos - Z-API WhatsApp{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-12">
+        <h1>Gerenciar Contatos</h1>
+        <button class="btn btn-primary mt-3" data-bs-toggle="modal" data-bs-target="#addContactModal">
+            + Adicionar Contato
+        </button>
+    </div>
+</div>
+
+<div class="row mt-4">
+    <div class="col-md-12">
+        <input type="text" class="form-control" id="searchContacts" placeholder="Buscar contatos...">
+    </div>
+</div>
+
+<div class="row mt-3">
+    <div class="col-md-12">
+        <div class="table-responsive">
+            <table class="table table-striped" id="contactsTable">
+                <thead>
+                    <tr>
+                        <th>Nome</th>
+                        <th>WhatsApp</th>
+                        <th>Grupo</th>
+                        <th>Ações</th>
+                    </tr>
+                </thead>
+                <tbody id="contactsTableBody">
+                    <!-- Contacts will be loaded via JavaScript -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Add Contact Modal -->
+<div class="modal fade" id="addContactModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Adicionar Contato</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="addContactForm">
+                    <div class="mb-3">
+                        <label for="contactName" class="form-label">Nome</label>
+                        <input type="text" class="form-control" id="contactName" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="contactPhone" class="form-label">WhatsApp</label>
+                        <input type="text" class="form-control" id="contactPhone" placeholder="+55 11 99999-9999" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="contactGroup" class="form-label">Grupo (opcional)</label>
+                        <select class="form-control" id="contactGroup">
+                            <option value="">Sem grupo</option>
+                        </select>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-primary" onclick="saveContact()">Salvar</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Load contacts on page load
+    document.addEventListener('DOMContentLoaded', function() {
+        loadContacts();
+        loadGroups();
+    });
+</script>
+{% endblock %}
